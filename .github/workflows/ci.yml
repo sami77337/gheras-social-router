@@ -33,7 +33,7 @@ jobs:
           python -m pip install -e '.[dev]'
 
       - name: Ruff
-        run: ruff check .
+        run: ruff check app tests
 
       - name: Mypy
         run: mypy app
