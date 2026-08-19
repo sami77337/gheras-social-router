@@ -94,7 +94,7 @@ GET http://127.0.0.1:8000/health
 ### الاختبارات
 
 ```bash
-ruff check .
+ruff check app tests
 mypy app
 pytest
 ```
