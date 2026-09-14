@@ -48,11 +48,13 @@ emits only the content-free manifest.
 2. requires the selected `evaluator_version` to have no pre-existing Shadow evidence, preventing aggregate contamination;
 3. ingests through `ExactIngestionCollector`, so duplicate identities with changed semantics fail closed;
 4. processes every accepted record through `PreLiveSandboxRuntime.process_event()`;
-5. ensures pending moderation-human-review outcomes also become durable Shadow evidence for this replay;
+5. for a still-pending moderation human review, records the point-in-time `would_wait_human` Shadow snapshot only inside this sealed replay evaluator namespace;
 6. verifies persisted Shadow outcome matches the processing result;
 7. verifies the outbound publication-action count did not increase;
 8. requires the version-scoped Shadow total to equal the unique replay event universe;
 9. returns only content-free aggregate evidence linked to both corpus SHA-256 and Shadow evidence SHA-256.
+
+Shadow rows remain immutable per `(event_id, evaluator_version)`. Phase 20 therefore does not change the general pre-live runtime to persist pending-review snapshots. A replay run uses a fresh evaluator version and treats that namespace as a point-in-time evidence set; later human-review state changes belong to a new evaluation version.
 
 Duplicate records with identical semantics are allowed and counted explicitly; they must resolve to one durable event and one Shadow record.
 
