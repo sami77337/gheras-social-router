@@ -44,6 +44,11 @@ coverage.xml
 *.sqlite3-journal
 data/
 
+# Private representative replay / evidence (never commit raw user/provider content)
+private-evidence/
+private-replay/
+*.replay.jsonl
+
 # Runtime logs / legacy local state
 *.log
 log.txt
