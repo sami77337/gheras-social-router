@@ -56,6 +56,8 @@ emits only the content-free manifest.
 
 Shadow rows remain immutable per `(event_id, evaluator_version)`. Phase 20 therefore does not change the general pre-live runtime to persist pending-review snapshots. A replay run uses a fresh evaluator version and treats that namespace as a point-in-time evidence set; later human-review state changes belong to a new evaluation version.
 
+This boundary was validated adversarially during CI: an initial general-runtime persistence attempt caused the existing moderation-review resume tests to raise immutable Shadow conflicts after human allow/block decisions. That attempt was reverted. The sealed replay-only snapshot preserves both replay completeness and the existing resumable runtime semantics.
+
 Duplicate records with identical semantics are allowed and counted explicitly; they must resolve to one durable event and one Shadow record.
 
 ## What remains external
