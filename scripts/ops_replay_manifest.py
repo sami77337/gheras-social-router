@@ -10,7 +10,10 @@ from app.operations.replay import load_replay_corpus
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate a private replay JSONL corpus and emit content-free identity metadata."
+        description=(
+            "Validate a private replay JSONL corpus and emit content-free "
+            "identity metadata."
+        )
     )
     parser.add_argument("corpus", type=Path)
     args = parser.parse_args()
