@@ -107,11 +107,12 @@ class PreLiveSandboxRuntime:
         if moderation.disposition is ModerationDisposition.HUMAN_REVIEW:
             review = self.moderation_review.ensure_review(event_id)
             if review.status is ModerationHumanReviewStatus.PENDING:
+                shadow = self.shadow.evaluate(event_id)
                 return PreLiveProcessResult(
                     event_id=event_id,
                     moderation_disposition=moderation.disposition,
                     route=None,
-                    shadow_outcome=ShadowOutcome.WOULD_WAIT_HUMAN,
+                    shadow_outcome=shadow.outcome,
                 )
             if review.decision is ModerationHumanDecision.BLOCK_ROUTING:
                 shadow = self.shadow.evaluate(event_id)
@@ -164,7 +165,6 @@ def create_prelive_sandbox_runtime(
     events = DurableRepository(database)
     moderation_results = ModerationRepository(database)
     moderation_review_results = ModerationReviewRepository(database)
-    classification_results = ClassificationRepository(database)
     faqs = FAQRepository(database)
     supervisors = SupervisorRepository(database)
     fatwas = FatwaRepository(database)
@@ -183,6 +183,7 @@ def create_prelive_sandbox_runtime(
         moderation=moderation_results,
         reviews=moderation_review_results,
     )
+    classification_results = ClassificationRepository(database)
     classification = ClassificationService(
         events=events,
         moderation=moderation_results,
