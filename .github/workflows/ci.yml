@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'phase/**'
   pull_request:
     branches:
       - main
@@ -15,25 +16,59 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
           cache: pip
 
       - name: Install project
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e '.[dev]'
+          python -m pip install --disable-pip-version-check -r requirements-build.lock
+          python -m pip install --disable-pip-version-check -e '.[dev,security]'
+
+      - name: Verify production lock metadata
+        run: python scripts/verify_prod_lock.py
+
+      - name: Dependency consistency
+        run: python -m pip check
+
+      - name: Audit locked production dependencies
+        run: python -m pip_audit --progress-spinner off -r requirements-prod.lock
+
+      - name: Audit locked build tooling
+        run: python -m pip_audit --progress-spinner off -r requirements-build.lock
+
+      - name: Audit CI and development environment
+        run: python -m pip_audit --local --skip-editable --progress-spinner off
+
+      - name: Reproduce production environment from lock
+        run: |
+          python -m venv /tmp/gheras-prod
+          /tmp/gheras-prod/bin/python -m pip install --disable-pip-version-check \
+            -r requirements-build.lock
+          /tmp/gheras-prod/bin/python -m pip install --disable-pip-version-check \
+            -r requirements-prod.lock
+          /tmp/gheras-prod/bin/python -m pip install --disable-pip-version-check \
+            --no-deps .
+          /tmp/gheras-prod/bin/python -m pip check
+          grep -Ev '^\s*(#|$)' requirements-prod.lock \
+            | LC_ALL=C sort > /tmp/expected-prod.lock
+          /tmp/gheras-prod/bin/python -m pip freeze --all \
+            | grep -Ev '^(gheras-social-router @|pip==|setuptools==)' \
+            | LC_ALL=C sort > /tmp/resolved-prod.lock
+          diff -u /tmp/expected-prod.lock /tmp/resolved-prod.lock
 
       - name: Ruff
-        run: ruff check app tests
+        run: ruff check app tests scripts
 
       - name: Mypy
         run: mypy app

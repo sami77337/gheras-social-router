@@ -2,7 +2,7 @@
 
 ## Mission
 
-Build the production-ready Gheras Social Comment Router for Facebook, Instagram, and Telegram while preserving a clean integration boundary with the existing Telegram fatwa bot.
+Build the production-ready Gheras Social Comment Router for Facebook, Instagram, Telegram, and YouTube while preserving a clean integration boundary with the existing Telegram fatwa bot.
 
 ## Non-negotiable product rules
 
@@ -28,6 +28,7 @@ Build the production-ready Gheras Social Comment Router for Facebook, Instagram,
 - Use `httpx` for external HTTP calls.
 - Use `pytest` for automated tests.
 - External API code must be behind adapters/interfaces and mockable in tests.
+- Facebook, Instagram, Telegram, and YouTube must normalize inbound events into the same durable domain model.
 - Processing state must survive restarts; do not use memory-only queues as the source of truth.
 - Add retry/backoff only where operations are safe and idempotent.
 - Log correlation IDs, not secrets or full sensitive payloads.
@@ -49,18 +50,19 @@ Build the production-ready Gheras Social Comment Router for Facebook, Instagram,
 4. GPT-5.6 Luna classifier with strict structured output.
 5. Approved FAQ engine.
 6. Telegram supervisor flow.
-7. Meta adapter for Facebook and Instagram webhooks/comments.
+7. Platform adapters for Facebook, Instagram, Telegram, and YouTube.
 8. Fatwa-bot integration bridge.
-9. Publishing dispatcher.
+9. Publishing dispatcher for Facebook, Instagram, Telegram, and YouTube.
 10. Evaluation, shadow mode, security review, regression audit.
 
 ## Definition of done for V1
 
-- Duplicate webhook events do not cause duplicate replies.
+- Duplicate platform events do not cause duplicate replies.
 - Restarts do not lose accepted events.
 - OpenAI/API failures result in retry or human escalation, never silent loss.
 - FAQ answers are traceable to an approved entry.
 - Religious questions are never answered automatically by AI.
 - Replies are delivered to the correct original platform/comment.
+- Facebook, Instagram, Telegram, and YouTube are supported through adapter boundaries rather than domain-specific coupling.
 - Shadow-mode evaluation is completed before enabling broad auto-reply.
 - CI and all automated tests pass.

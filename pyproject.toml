@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,16 +8,19 @@ version = "0.1.0"
 description = "Unified social comment routing service for Gheras"
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi>=0.116,<1.0",
-  "uvicorn[standard]>=0.35,<1.0",
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "uvicorn[standard]==0.52.4",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.28,<1.0",
-  "mypy>=1.17,<2.0",
-  "pytest>=8.4,<9.0",
-  "ruff>=0.12,<1.0",
+  "mypy==1.20.2",
+  "pytest==9.1.1",
+  "ruff==0.16.7",
+]
+security = [
+  "pip-audit==2.10.1",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,5 @@
+# Gheras Social Router V1 — build tooling lock
+# These versions are separately audited from the runtime dependency graph.
+
+pip==26.2.1
+setuptools==84.0.0

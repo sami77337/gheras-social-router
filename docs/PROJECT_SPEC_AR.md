@@ -2,7 +2,7 @@
 
 ## الهدف
 
-تحويل المستودع الحالي من Facebook auto-reply بسيط إلى نظام موحّد يدير تعليقات غراس على Facebook وInstagram وTelegram، مع تصنيف ذكي ومسارات بشرية وآلية واضحة.
+تحويل المستودع الحالي من Facebook auto-reply بسيط إلى نظام موحّد يدير تعليقات ورسائل غراس على Facebook وInstagram وTelegram وYouTube، مع تصنيف ذكي ومسارات بشرية وآلية واضحة ومعالجة موثوقة تمنع التكرار وفقدان الأحداث.
 
 ## النطاق
 
@@ -11,6 +11,9 @@
 - Facebook comments.
 - Instagram comments.
 - Telegram comments/messages ذات الصلة بالنظام.
+- YouTube comments/replies ذات الصلة بالنظام.
+- توحيد أحداث المنصات الأربع داخل نموذج Domain واحد.
+- Persist-first durable processing قبل أي معالجة دلالية أو رد.
 - Moderation للنصوص والصور قبل التصنيف.
 - GPT-5.6 Luna لتصنيف التعليق فقط ضمن المسارات المعتمدة.
 - Approved FAQ replies.
@@ -30,9 +33,13 @@
 ## التدفق
 
 ```text
-Instagram ─┐
-Facebook  ─┼──> Social Collector
-Telegram  ─┘        │
+Facebook  ─┐
+Instagram ─┤
+Telegram  ─┼──> Social Collector
+YouTube   ─┘        │
+                    ▼
+             Persist-First Core
+                    │
                     ▼
              Moderation Filter
           فحص إساءة / صور / محتوى ضار
@@ -47,21 +54,30 @@ Telegram  ─┘        │
                            │
                ┌───────────┼───────────┐
                ▼           ▼           ▼
-          سؤال معروف    غير معروف     فتوى
+              FAQ      SUPERVISOR     FATWA
                │           │           │
-           رد تلقائي    المشرفون    بوت الفتاوى
-                           │           │
-                           ▼           ▼
-                          الرد      جواب الشيخ
-                                        │
-                                        ▼
-                             اختيار مكان النشر
-                                        │
-                           ┌────────────┼────────────┐
-                           ▼            ▼            ▼
-                      Telegram فقط   التعليق       الاثنين
-                       [الافتراضي]
+        جواب معتمد      المشرفون    بوت الفتاوى
+               │           │           │
+               └───────────┴───────────┘
+                           │
+                           ▼
+                  Publishing Dispatcher
+                           │
+               ┌───────────┼───────────┬───────────┐
+               ▼           ▼           ▼           ▼
+           Facebook    Instagram    Telegram     YouTube
 ```
+
+## نموذج المنصات
+
+القيم المسموحة في V1:
+
+- `facebook`
+- `instagram`
+- `telegram`
+- `youtube`
+
+كل Platform Adapter مسؤول عن تحويل الحدث الأصلي إلى نموذج موحد قبل دخوله إلى قلب النظام. لا يجوز ربط Domain logic مباشرة بتفاصيل SDK أو payload خاصة بمنصة بعينها.
 
 ## التصنيف
 
@@ -88,39 +104,43 @@ Telegram  ─┘        │
 
 ## الاعتمادية
 
-- حفظ الحدث قبل معالجته.
+- حفظ الحدث قبل معالجته: Persist First, Process Later.
 - Unique key لكل platform event لمنع التكرار.
 - تخزين processing state في قاعدة البيانات.
 - outbound actions تسجل قبل/بعد التنفيذ لضمان عدم تكرار الرد.
 - retries محدودة مع backoff.
+- إعادة تشغيل الخدمة لا تفقد الأحداث المقبولة أو حالتها.
+- نفس الحدث الوارد أو نفس outbound action لا ينشئ أثرًا مكررًا.
 
 ## الأمن والخصوصية
 
 - الأسرار من Environment/Secrets فقط.
-- عدم تسجيل Tokens أو Webhook secrets.
-- أقل صلاحيات ممكنة لحسابات Meta وTelegram.
-- عدم نشر بيانات حقيقية للمستخدمين داخل الاختبارات أو المستودع.
+- عدم تسجيل Tokens أو Webhook secrets أو authorization headers.
+- أقل صلاحيات ممكنة لحسابات Meta وTelegram وYouTube/Google.
+- عدم نشر بيانات حقيقية للمستخدمين أو production logs داخل الاختبارات أو المستودع.
+- تخزين الحقول المطبّعة اللازمة فقط؛ لا تُحفظ payloads الخام بلا ضرورة.
 
 ## مراحل التنفيذ
 
 1. Bootstrap.
-2. Core durable processing.
+2. Core durable processing: SQLite + event model + state machine + idempotency.
 3. Moderation.
 4. Luna classifier.
 5. FAQ engine.
 6. Telegram supervisor workflow.
-7. Facebook + Instagram adapter.
+7. Platform adapters: Facebook + Instagram + Telegram + YouTube.
 8. Fatwa integration bridge.
-9. Reply publishing.
-10. Evaluation + Shadow Mode + final audit.
+9. Reply publishing dispatcher للمنصات الأربع.
+10. Evaluation + Shadow Mode + security review + final regression audit.
 
 ## بوابة التشغيل
 
 لا يتم تفعيل auto-reply على الإنتاج قبل:
 
 - نجاح الاختبارات الكاملة.
-- اختبار idempotency وإعادة الإرسال.
+- اختبار idempotency وإعادة الإرسال لكل منصة.
 - اختبار restart recovery.
 - إثبات عدم توليد AI لفتوى.
 - تقييم dataset حقيقي من تعليقات غراس في Shadow Mode.
 - مراجعة security وsecrets.
+- إثبات أن Facebook وInstagram وTelegram وYouTube تستخدم حدود Adapter واضحة وتعيد الرد للهدف الصحيح.
