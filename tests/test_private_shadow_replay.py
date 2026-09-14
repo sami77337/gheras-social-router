@@ -73,7 +73,11 @@ def _write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
     )
 
 
-def _record(*, key: str = "replay-1", text: str = "When does registration start?") -> dict[str, object]:
+def _record(
+    *,
+    key: str = "replay-1",
+    text: str = "When does registration start?",
+) -> dict[str, object]:
     return {
         "platform": "telegram",
         "external_event_key": key,
