@@ -15,6 +15,7 @@ from app.acquisition.common import (
     AcquisitionProtocolError,
     bounded_id,
     bounded_text,
+    store_acquired_comment,
 )
 from app.adapters.platforms.live_security import validate_meta_graph_api_version
 from app.domain.events import Platform
@@ -216,12 +217,15 @@ class MetaHistoricalCommentClient:
                 raw_text = comment.get(text_field)
                 if isinstance(raw_text, str) and raw_text.strip():
                     text = bounded_text(raw_text, field=f"comment.{text_field}")
-                    comments[comment_id] = AcquiredComment(
-                        platform=platform,
-                        comment_id=comment_id,
-                        source_id=source_id,
-                        thread_id=parent_id if parent_id != source_id else comment_id,
-                        text=text,
+                    store_acquired_comment(
+                        comments,
+                        AcquiredComment(
+                            platform=platform,
+                            comment_id=comment_id,
+                            source_id=source_id,
+                            thread_id=parent_id if parent_id != source_id else comment_id,
+                            text=text,
+                        ),
                     )
                     if len(comments) > _MAX_COMMENTS:
                         raise AcquisitionLimitExceeded(
