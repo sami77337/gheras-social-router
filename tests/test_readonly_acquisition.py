@@ -133,6 +133,70 @@ def test_youtube_channel_reader_uses_get_only_and_collects_all_replies() -> None
     assert len(requests) == 2
 
 
+
+def test_youtube_conflicting_duplicate_reply_fails_closed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/commentThreads"):
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "id": "thread-conflict",
+                            "snippet": {
+                                "videoId": "video-conflict",
+                                "totalReplyCount": 2,
+                                "topLevelComment": {
+                                    "id": "top-conflict",
+                                    "snippet": {"textOriginal": "Top"},
+                                },
+                            },
+                            "replies": {
+                                "comments": [
+                                    {
+                                        "id": "reply-conflict",
+                                        "snippet": {"textOriginal": "first snapshot"},
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+        if request.url.path.endswith("/comments"):
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "id": "reply-conflict",
+                            "snippet": {"textOriginal": "changed snapshot"},
+                        },
+                        {
+                            "id": "reply-2",
+                            "snippet": {"textOriginal": "second reply"},
+                        },
+                    ]
+                },
+            )
+        raise AssertionError("unexpected YouTube path")
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            client = YouTubeHistoricalCommentClient(
+                http=http,
+                permit=_permit(),
+                api_key="test-api-key",
+            )
+            await client.collect_channel("channel-conflict")
+
+    with pytest.raises(
+        AcquisitionProtocolError,
+        match="same comment id is bound to different acquisition semantics",
+    ):
+        asyncio.run(run())
+
+
 def test_youtube_reader_requires_explicit_permit_before_network() -> None:
     calls = 0
 
@@ -204,6 +268,56 @@ def test_meta_readers_use_get_only_and_collect_replies(
         "comment-1",
         "reply-1",
     }
+    assert len(requests) == 2
+
+
+
+@pytest.mark.parametrize(
+    ("platform", "text_field", "reply_edge"),
+    [
+        ("facebook", "message", "comments"),
+        ("instagram", "text", "replies"),
+    ],
+)
+def test_meta_collects_text_replies_under_non_text_parent(
+    platform: str,
+    text_field: str,
+    reply_edge: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert request.method == "GET"
+        if request.url.path.endswith("/source-empty/comments"):
+            return httpx.Response(
+                200,
+                json={"data": [{"id": "parent-empty", text_field: ""}]},
+            )
+        if request.url.path.endswith(f"/parent-empty/{reply_edge}"):
+            return httpx.Response(
+                200,
+                json={"data": [{"id": "reply-text", text_field: "Retained reply"}]},
+            )
+        raise AssertionError(f"unexpected Meta path: {request.url.path}")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            client = MetaHistoricalCommentClient(
+                http=http,
+                permit=_permit(),
+                access_token="test-access-token",
+                api_version="v99.0",
+            )
+            if platform == "facebook":
+                return await client.collect_facebook_posts(["source-empty"])
+            return await client.collect_instagram_media(["source-empty"])
+
+    batch = asyncio.run(run())
+    assert batch.platform.value == platform
+    assert batch.record_count == 1
+    assert {comment.comment_id for comment in batch.comments} == {"reply-text"}
+    assert batch.comments[0].thread_id == "parent-empty"
     assert len(requests) == 2
 
 

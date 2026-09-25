@@ -94,6 +94,20 @@ class AcquiredComment:
         }
 
 
+def store_acquired_comment(
+    comments: dict[str, AcquiredComment],
+    comment: AcquiredComment,
+) -> None:
+    """Insert one comment, allowing exact duplicates but rejecting semantic drift."""
+
+    existing = comments.get(comment.comment_id)
+    if existing is not None and existing != comment:
+        raise AcquisitionProtocolError(
+            "same comment id is bound to different acquisition semantics"
+        )
+    comments[comment.comment_id] = comment
+
+
 @dataclass(frozen=True, slots=True)
 class AcquisitionBatch:
     """Content-free acquisition metadata plus private records."""
