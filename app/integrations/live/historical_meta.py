@@ -224,6 +224,10 @@ class MetaHistoricalCommentClient:
                     thread_id=parent_id if parent_id != source_id else comment_id,
                     text=text,
                 )
+                if len(comments) > _MAX_COMMENTS:
+                    raise AcquisitionLimitExceeded(
+                        f"{platform.value} acquisition exceeds maximum comment count"
+                    )
                 if collect_replies:
                     await self._collect_comment_edge(
                         platform=platform,
