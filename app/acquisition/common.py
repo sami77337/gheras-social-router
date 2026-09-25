@@ -97,7 +97,11 @@ class AcquisitionBatch:
         source_ref: str,
         comments: tuple[AcquiredComment, ...],
     ) -> AcquisitionBatch:
-        source = bounded_id(source_ref, field="source_ref")
+        if not isinstance(source_ref, str):
+            raise AcquisitionProtocolError("source_ref must be a string")
+        source = source_ref.strip()
+        if not source or len(source) > 2048:
+            raise AcquisitionProtocolError("source_ref is invalid")
         if len(comments) > _MAX_RECORDS:
             raise AcquisitionLimitExceeded("acquisition exceeds maximum record count")
         if any(comment.platform is not platform for comment in comments):
