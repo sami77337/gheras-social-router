@@ -67,18 +67,20 @@ Phase 21 can be reviewed as engineering preparation without credentials. HG-09 r
 
 ## Continuation hardening
 
-A continuation review found two pre-lock weaknesses that were corrected before the engineering lock was renewed:
+Continuation review corrected four pre-lock weaknesses before the engineering lock was renewed:
 
 - the Telegram ZIP importer bounded each member but did not bound the aggregate uncompressed HTML size;
-- the corpus merge helper reconstructed Phase 20 identities through `AcquiredComment`, which could rewrite an otherwise valid opaque `external_event_key`.
+- the corpus merge helper reconstructed Phase 20 identities through `AcquiredComment`, which could rewrite an otherwise valid opaque `external_event_key`;
+- Meta reply traversal was skipped when a top-level parent contained no usable text, which could silently lose text replies beneath attachment-only/empty parents;
+- provider comment dictionaries could silently replace the same comment ID with different semantics during multi-page or inline/full-reply acquisition.
 
-The hardening also moves record-count checks into provider collection loops and adds regression coverage for the corrected fail-closed behavior.
+The hardening also moves record-count checks into provider collection loops. Meta now traverses replies whenever the parent ID is valid even when the parent itself is not a text record. Meta and YouTube allow exact duplicate snapshots but reject conflicting duplicate comment identities. Regression coverage locks these fail-closed and no-loss behaviors.
 
 ## Engineering lock evidence
 
 - PR: #49 (stacked on Phase 20; open/unmerged)
-- reviewed code head before this documentation lock: `e9851a6e798af99f5ee2e4f30c0beaff60481a19`
-- full CI run: `36136526141` — PASS
+- reviewed code head before this documentation lock: `bb4d32dd1f724bd679f39f8a9d148ba708c478ab`
+- full CI run: `36173862274` — PASS
 - production lock metadata: PASS
 - dependency consistency: PASS
 - production dependency audit: PASS
