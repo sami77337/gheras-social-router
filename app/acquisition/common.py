@@ -56,11 +56,23 @@ class AcquiredComment:
     thread_id: str | None = None
 
     def __post_init__(self) -> None:
-        bounded_id(self.comment_id, field="comment_id")
-        bounded_id(self.source_id, field="source_id")
-        bounded_text(self.text)
+        object.__setattr__(
+            self,
+            "comment_id",
+            bounded_id(self.comment_id, field="comment_id"),
+        )
+        object.__setattr__(
+            self,
+            "source_id",
+            bounded_id(self.source_id, field="source_id"),
+        )
+        object.__setattr__(self, "text", bounded_text(self.text))
         if self.thread_id is not None:
-            bounded_id(self.thread_id, field="thread_id")
+            object.__setattr__(
+                self,
+                "thread_id",
+                bounded_id(self.thread_id, field="thread_id"),
+            )
 
     def __repr__(self) -> str:
         return (
@@ -123,7 +135,10 @@ class AcquisitionBatch:
         }
 
 
-def write_replay_jsonl(path: str | Path, comments: tuple[AcquiredComment, ...]) -> dict[str, object]:
+def write_replay_jsonl(
+    path: str | Path,
+    comments: tuple[AcquiredComment, ...],
+) -> dict[str, object]:
     """Write private replay JSONL, then re-parse it with Phase 20's strict loader."""
 
     if not comments:
