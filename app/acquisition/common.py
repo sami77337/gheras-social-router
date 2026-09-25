@@ -119,7 +119,7 @@ class AcquisitionBatch:
         if any(comment.platform is not platform for comment in comments):
             raise AcquisitionProtocolError("batch contains a mismatched platform")
         digest = hashlib.sha256(
-            f"{platform.value}:{source}".encode("utf-8")
+            f"{platform.value}:{source}".encode()
         ).hexdigest()
         return cls(platform=platform, source_ref_sha256=digest, comments=comments)
 
