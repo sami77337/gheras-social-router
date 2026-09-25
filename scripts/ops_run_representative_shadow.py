@@ -93,10 +93,15 @@ def main() -> int:
 
     evidence = asyncio.run(_run(args, api_key))
     args.evidence_output.parent.mkdir(parents=True, exist_ok=True)
-    args.evidence_output.write_text(
-        json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
+    temporary = args.evidence_output.with_name(f".{args.evidence_output.name}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(args.evidence_output)
+    finally:
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {
