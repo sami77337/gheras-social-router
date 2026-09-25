@@ -12,8 +12,8 @@ import httpx
 
 from app.integrations.live.activation import issue_sandbox_execution_permit
 from app.integrations.live.openai import OpenAIResponsesDecisionClient
-from app.operations.representative_shadow import execute_representative_shadow
 from app.operations.replay import load_replay_corpus
+from app.operations.representative_shadow import execute_representative_shadow
 
 
 def _git_head() -> str:
