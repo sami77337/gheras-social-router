@@ -2,7 +2,7 @@
 
 ## Status
 
-**ENGINEERING PREPARATION ONLY. NO REAL PROVIDER CALL HAS BEEN EXECUTED.**
+**ENGINEERING PREPARATION: PASS. NO REAL PROVIDER CALL HAS BEEN EXECUTED.**
 
 Phase 21 prepares private historical acquisition so HG-09 can continue as soon as approved source access is available. It does not authorize or perform live collection by itself.
 
@@ -61,3 +61,16 @@ The merge re-parses every input through the Phase 20 strict loader and rejects s
 ## What remains
 
 Phase 21 can be reviewed as engineering preparation without credentials. HG-09 remains HOLD until real representative data is collected, corpus identity is recorded, Shadow replay is executed with publication disabled, anomalies are reviewed, and a final PASS/HOLD/REJECT decision is recorded.
+
+## Engineering lock evidence
+
+- PR: #49 (stacked on Phase 20; open/unmerged)
+- Head SHA before this documentation lock: `e68f00980815106d330676184d75d89de69eb46e`
+- Full CI run: `36131491691` — PASS
+- SCA/dependency checks: PASS
+- production-environment reproduction: PASS
+- Ruff: PASS
+- Mypy: PASS
+- Pytest: PASS
+- submitted independent review: none at lock time
+- real provider execution: not performed
