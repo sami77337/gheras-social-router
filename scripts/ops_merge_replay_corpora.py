@@ -4,7 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from app.acquisition.common import AcquiredComment, AcquisitionProtocolError, write_replay_jsonl
+from app.acquisition.common import (
+    AcquiredComment,
+    AcquisitionProtocolError,
+    write_replay_jsonl,
+)
 from app.operations.replay import load_replay_corpus
 
 
