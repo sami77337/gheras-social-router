@@ -207,6 +207,56 @@ def test_meta_readers_use_get_only_and_collect_replies(
     assert len(requests) == 2
 
 
+
+@pytest.mark.parametrize(
+    ("platform", "text_field", "reply_edge"),
+    [
+        ("facebook", "message", "comments"),
+        ("instagram", "text", "replies"),
+    ],
+)
+def test_meta_collects_text_replies_under_non_text_parent(
+    platform: str,
+    text_field: str,
+    reply_edge: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert request.method == "GET"
+        if request.url.path.endswith("/source-empty/comments"):
+            return httpx.Response(
+                200,
+                json={"data": [{"id": "parent-empty", text_field: ""}]},
+            )
+        if request.url.path.endswith(f"/parent-empty/{reply_edge}"):
+            return httpx.Response(
+                200,
+                json={"data": [{"id": "reply-text", text_field: "Retained reply"}]},
+            )
+        raise AssertionError(f"unexpected Meta path: {request.url.path}")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            client = MetaHistoricalCommentClient(
+                http=http,
+                permit=_permit(),
+                access_token="test-access-token",
+                api_version="v99.0",
+            )
+            if platform == "facebook":
+                return await client.collect_facebook_posts(["source-empty"])
+            return await client.collect_instagram_media(["source-empty"])
+
+    batch = asyncio.run(run())
+    assert batch.platform.value == platform
+    assert batch.record_count == 1
+    assert {comment.comment_id for comment in batch.comments} == {"reply-text"}
+    assert batch.comments[0].thread_id == "parent-empty"
+    assert len(requests) == 2
+
+
 def test_written_replay_does_not_include_author_identity(tmp_path: Path) -> None:
     export = tmp_path / "one.zip"
     html = (
