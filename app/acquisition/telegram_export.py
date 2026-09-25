@@ -88,6 +88,15 @@ def _parse_html(content: bytes) -> list[tuple[str, str]]:
     return parser.records
 
 
+def _extend_records(
+    records: list[tuple[str, str]],
+    new_records: list[tuple[str, str]],
+) -> None:
+    if len(records) + len(new_records) > _MAX_MESSAGES:
+        raise AcquisitionLimitExceeded("Telegram export exceeds maximum message count")
+    records.extend(new_records)
+
+
 def _load_zip(path: Path) -> tuple[list[tuple[str, str]], str]:
     if path.stat().st_size > _MAX_EXPORT_BYTES:
         raise AcquisitionLimitExceeded("Telegram export archive exceeds maximum size")
@@ -100,11 +109,15 @@ def _load_zip(path: Path) -> tuple[list[tuple[str, str]], str]:
         ]
         if not names:
             raise AcquisitionProtocolError("Telegram archive contains no messages HTML")
+        total = 0
         for name in sorted(names):
             info = archive.getinfo(name)
-            if info.file_size > _MAX_EXPORT_BYTES:
-                raise AcquisitionLimitExceeded("Telegram HTML file exceeds maximum size")
-            records.extend(_parse_html(archive.read(name)))
+            total += info.file_size
+            if info.file_size > _MAX_EXPORT_BYTES or total > _MAX_EXPORT_BYTES:
+                raise AcquisitionLimitExceeded(
+                    "Telegram export uncompressed HTML exceeds maximum size"
+                )
+            _extend_records(records, _parse_html(archive.read(name)))
     return records, path.name
 
 
@@ -122,7 +135,7 @@ def _load_directory(path: Path) -> tuple[list[tuple[str, str]], str]:
         total += candidate.stat().st_size
         if total > _MAX_EXPORT_BYTES:
             raise AcquisitionLimitExceeded("Telegram export exceeds maximum size")
-        records.extend(_parse_html(candidate.read_bytes()))
+        _extend_records(records, _parse_html(candidate.read_bytes()))
     return records, path.name
 
 
@@ -147,12 +160,20 @@ def load_telegram_desktop_export(path: str | Path) -> AcquisitionBatch:
         if not comment_id or any(char.isspace() for char in comment_id):
             raise AcquisitionProtocolError("Telegram message id is invalid")
         text = bounded_text(raw_text)
-        comments[comment_id] = AcquiredComment(
+        candidate = AcquiredComment(
             platform=Platform.TELEGRAM,
             comment_id=comment_id,
             source_id="telegram-desktop-export",
             text=text,
         )
+        existing = comments.get(comment_id)
+        if existing is not None:
+            if existing.text != candidate.text:
+                raise AcquisitionProtocolError(
+                    "duplicate Telegram message id has conflicting text"
+                )
+            continue
+        comments[comment_id] = candidate
 
     if not comments:
         raise AcquisitionProtocolError("Telegram export contains no text messages")
