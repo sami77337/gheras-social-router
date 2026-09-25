@@ -231,11 +231,11 @@ def test_telegram_zip_caps_total_uncompressed_html_before_parsing(
 ) -> None:
     import app.acquisition.telegram_export as telegram_export
 
-    monkeypatch.setattr(telegram_export, "_MAX_EXPORT_BYTES", 10)
+    monkeypatch.setattr(telegram_export, "_MAX_EXPORT_BYTES", 1_000)
     export = tmp_path / "oversized.zip"
     with zipfile.ZipFile(export, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("messages.html", "123456")
-        archive.writestr("messages2.html", "123456")
+        archive.writestr("messages.html", "a" * 600)
+        archive.writestr("messages2.html", "b" * 600)
 
     with pytest.raises(AcquisitionLimitExceeded, match="uncompressed HTML"):
         load_telegram_desktop_export(export)
