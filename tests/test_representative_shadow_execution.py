@@ -94,6 +94,8 @@ def test_faq_snapshot_is_strict_and_content_redacted(tmp_path: Path) -> None:
     assert len(snapshot.manifest.sha256) == 64
     assert len(snapshot.manifest.key_set_sha256) == 64
     assert private_answer not in repr(snapshot)
+    assert private_answer not in repr(snapshot.entries[0])
+    assert "approved-reviewer" not in repr(snapshot.entries[0])
 
 
 def test_faq_snapshot_rejects_duplicate_key_and_naive_timestamp(tmp_path: Path) -> None:
@@ -188,3 +190,27 @@ def test_representative_shadow_requires_fresh_database(tmp_path: Path) -> None:
             )
         )
     assert client.calls == []
+
+
+
+def test_representative_shadow_rejects_invalid_evaluator_version(tmp_path: Path) -> None:
+    corpus = tmp_path / "representative.replay.jsonl"
+    database = tmp_path / "representative.db"
+    _write_corpus(corpus, "private comment")
+
+    client = StaticDecisionClient(_moderation_output())
+    with pytest.raises(RepresentativeShadowError, match="evaluator_version is invalid"):
+        asyncio.run(
+            execute_representative_shadow(
+                corpus_path=corpus,
+                database_path=database,
+                permit=issue_sandbox_execution_permit(purpose="sandbox_validation"),
+                moderation_client=client,
+                classification_client=client,
+                evaluator_version="invalid evaluator version",
+                release_sha="c" * 40,
+                model_id="test-model-v1",
+            )
+        )
+    assert client.calls == []
+    assert not database.exists()
