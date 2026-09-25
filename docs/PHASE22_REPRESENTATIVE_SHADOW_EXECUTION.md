@@ -7,14 +7,14 @@ After rebasing the Phase 22 stack onto the hardened Phase 21 head, a continuatio
 - `evaluator_version` is validated as a bounded evidence namespace before runtime/database creation;
 - the final content-free evidence file is written atomically through a temporary file.
 
-Regression coverage verifies FAQ-entry redaction and rejects invalid evaluator namespaces before any database or model-client activity.
+Regression coverage verifies FAQ-entry redaction and rejects invalid evaluator namespaces before any database or model-client activity. The stack was then resynchronized onto the final hardened Phase 21 head, including no-loss Meta reply traversal and fail-closed conflicting provider-comment identity handling, and the complete combined stack was revalidated.
 
 ## Engineering lock evidence
 
 - PR: #51 (stacked on hardened Phase 21; open/unmerged)
-- synchronized Phase 21 base SHA: `766d607875d30ddc2da8ffeef930deb52dd6b623`
-- reviewed code head before this documentation lock: `36d90380ccfc8e0853f07659118e72cf60d06e4d`
-- full CI run: `36137691028` — PASS
+- synchronized Phase 21 base SHA: `f16c8e966a98f4eab850eb0293d720af08c83c6d`
+- reviewed code head before this documentation lock: `03d85b88fb27082bdda1bd61f02179c37590f9dc`
+- full CI run: `36174234191` — PASS
 - production lock metadata: PASS
 - dependency consistency: PASS
 - production dependency audit: PASS
