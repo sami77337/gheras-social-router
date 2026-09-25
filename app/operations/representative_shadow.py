@@ -18,6 +18,7 @@ from app.runtime.prelive import create_prelive_sandbox_runtime
 
 _RELEASE_SHA = re.compile(r"^[0-9a-f]{40}$")
 _MODEL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_EVALUATOR_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 class RepresentativeShadowError(RuntimeError):
@@ -49,6 +50,13 @@ def _model_id(value: str) -> str:
     return normalized
 
 
+def _evaluator_version(value: str) -> str:
+    normalized = value.strip()
+    if not _EVALUATOR_VERSION.fullmatch(normalized):
+        raise RepresentativeShadowError("evaluator_version is invalid")
+    return normalized
+
+
 async def execute_representative_shadow(
     *,
     corpus_path: str | Path,
@@ -71,6 +79,7 @@ async def execute_representative_shadow(
 
     release = _release_sha(release_sha)
     model = _model_id(model_id)
+    evaluator = _evaluator_version(evaluator_version)
     corpus = load_replay_corpus(corpus_path)
 
     runtime = create_prelive_sandbox_runtime(
@@ -82,7 +91,7 @@ async def execute_representative_shadow(
         meta_verify_token="replay_inert_meta_verify",
         telegram_webhook_secret="Replay_Inert_Telegram_Secret",
         publishers={},
-        evaluator_version=evaluator_version,
+        evaluator_version=evaluator,
     )
 
     faq_manifest: FAQSnapshotManifest | None = None
@@ -99,7 +108,7 @@ async def execute_representative_shadow(
     return RepresentativeShadowEvidence(
         release_sha=release,
         model_id=model,
-        evaluator_version=evaluator_version,
+        evaluator_version=evaluator,
         corpus_sha256=corpus.manifest.sha256,
         corpus_record_count=corpus.manifest.record_count,
         faq_snapshot=faq_manifest,
