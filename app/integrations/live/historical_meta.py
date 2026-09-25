@@ -214,20 +214,19 @@ class MetaHistoricalCommentClient:
                 comment = _object(raw, field="comment")
                 comment_id = bounded_id(comment.get("id"), field="comment.id")
                 raw_text = comment.get(text_field)
-                if raw_text is None or not isinstance(raw_text, str) or not raw_text.strip():
-                    continue
-                text = bounded_text(raw_text, field=f"comment.{text_field}")
-                comments[comment_id] = AcquiredComment(
-                    platform=platform,
-                    comment_id=comment_id,
-                    source_id=source_id,
-                    thread_id=parent_id if parent_id != source_id else comment_id,
-                    text=text,
-                )
-                if len(comments) > _MAX_COMMENTS:
-                    raise AcquisitionLimitExceeded(
-                        f"{platform.value} acquisition exceeds maximum comment count"
+                if isinstance(raw_text, str) and raw_text.strip():
+                    text = bounded_text(raw_text, field=f"comment.{text_field}")
+                    comments[comment_id] = AcquiredComment(
+                        platform=platform,
+                        comment_id=comment_id,
+                        source_id=source_id,
+                        thread_id=parent_id if parent_id != source_id else comment_id,
+                        text=text,
                     )
+                    if len(comments) > _MAX_COMMENTS:
+                        raise AcquisitionLimitExceeded(
+                            f"{platform.value} acquisition exceeds maximum comment count"
+                        )
                 if collect_replies:
                     await self._collect_comment_edge(
                         platform=platform,
