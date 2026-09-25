@@ -9,14 +9,14 @@ import httpx
 import pytest
 
 from app.acquisition.common import write_replay_jsonl
-from app.acquisition.meta import MetaHistoricalCommentClient
 from app.acquisition.telegram_export import load_telegram_desktop_export
-from app.acquisition.youtube import YouTubeHistoricalCommentClient
 from app.domain.events import Platform
 from app.integrations.live.activation import (
     ExternalIntegrationDisabled,
     issue_sandbox_execution_permit,
 )
+from app.integrations.live.historical_meta import MetaHistoricalCommentClient
+from app.integrations.live.historical_youtube import YouTubeHistoricalCommentClient
 from app.operations.replay import load_replay_corpus
 
 
