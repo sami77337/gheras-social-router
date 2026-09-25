@@ -29,13 +29,19 @@ class FAQSnapshotError(ValueError):
     """Raised when an approved FAQ snapshot violates the replay contract."""
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class ApprovedFAQSnapshotEntry:
     faq_key: str
     answer_text: str
     source_ref: str
     approved_by: str
     approved_at: datetime
+
+    def __repr__(self) -> str:
+        return (
+            "ApprovedFAQSnapshotEntry("
+            f"faq_key={self.faq_key!r}, content_redacted=True)"
+        )
 
 
 @dataclass(frozen=True, slots=True)
