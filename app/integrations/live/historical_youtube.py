@@ -14,6 +14,7 @@ from app.acquisition.common import (
     AcquisitionProtocolError,
     bounded_id,
     bounded_text,
+    store_acquired_comment,
 )
 from app.domain.events import Platform
 from app.integrations.live.activation import SandboxExecutionPermit
@@ -179,12 +180,15 @@ class YouTubeHistoricalCommentClient:
             top_snippet.get("textOriginal", top_snippet.get("textDisplay")),
             field="topLevelComment.text",
         )
-        comments[top_id] = AcquiredComment(
-            platform=Platform.YOUTUBE,
-            comment_id=top_id,
-            source_id=video_id,
-            thread_id=thread_id,
-            text=top_text,
+        store_acquired_comment(
+            comments,
+            AcquiredComment(
+                platform=Platform.YOUTUBE,
+                comment_id=top_id,
+                source_id=video_id,
+                thread_id=thread_id,
+                text=top_text,
+            ),
         )
         if len(comments) > _MAX_COMMENTS:
             raise AcquisitionLimitExceeded(
@@ -233,12 +237,15 @@ class YouTubeHistoricalCommentClient:
             snippet.get("textOriginal", snippet.get("textDisplay")),
             field="reply.text",
         )
-        comments[comment_id] = AcquiredComment(
-            platform=Platform.YOUTUBE,
-            comment_id=comment_id,
-            source_id=video_id,
-            thread_id=thread_id,
-            text=text,
+        store_acquired_comment(
+            comments,
+            AcquiredComment(
+                platform=Platform.YOUTUBE,
+                comment_id=comment_id,
+                source_id=video_id,
+                thread_id=thread_id,
+                text=text,
+            ),
         )
         if len(comments) > _MAX_COMMENTS:
             raise AcquisitionLimitExceeded(
