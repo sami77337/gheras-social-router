@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from app.domain.events import Platform
-from app.operations.replay import load_replay_corpus
+from app.operations.replay import ReplayCorpusRecord, load_replay_corpus
 
 _MAX_ID_LENGTH = 512
 _MAX_TEXT_LENGTH = 16_000
@@ -135,35 +136,120 @@ class AcquisitionBatch:
         }
 
 
-def write_replay_jsonl(
-    path: str | Path,
-    comments: tuple[AcquiredComment, ...],
-) -> dict[str, object]:
-    """Write private replay JSONL, then re-parse it with Phase 20's strict loader."""
-
-    if not comments:
-        raise AcquisitionProtocolError("cannot write an empty acquisition")
-    if len(comments) > _MAX_RECORDS:
-        raise AcquisitionLimitExceeded("acquisition exceeds maximum record count")
-
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8", newline="\n") as handle:
-        for comment in comments:
-            handle.write(
-                json.dumps(
-                    comment.replay_object(),
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                )
-                + "\n"
-            )
-
-    corpus = load_replay_corpus(target)
+def _manifest_dict(path: Path) -> dict[str, object]:
+    corpus = load_replay_corpus(path)
     return {
         "sha256": corpus.manifest.sha256,
         "size_bytes": corpus.manifest.size_bytes,
         "record_count": corpus.manifest.record_count,
         "by_platform": dict(corpus.manifest.by_platform),
     }
+
+
+def _write_replay_payloads(
+    path: str | Path,
+    payloads: tuple[dict[str, str], ...],
+) -> dict[str, object]:
+    if not payloads:
+        raise AcquisitionProtocolError("cannot write an empty acquisition")
+    if len(payloads) > _MAX_RECORDS:
+        raise AcquisitionLimitExceeded("acquisition exceeds maximum record count")
+
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(f".{target.name}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            for payload in payloads:
+                handle.write(
+                    json.dumps(
+                        payload,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                )
+
+        manifest = _manifest_dict(temporary)
+        temporary.replace(target)
+        return manifest
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _replay_record_payload(record: ReplayCorpusRecord) -> dict[str, str]:
+    payload: dict[str, str] = {
+        "platform": record.platform.value,
+        "external_event_key": record.external_event_key,
+        "text": record.text,
+    }
+    optional_fields = (
+        ("external_event_id", record.external_event_id),
+        ("external_comment_id", record.external_comment_id),
+        ("external_post_id", record.external_post_id),
+    )
+    for key, value in optional_fields:
+        if value is not None:
+            payload[key] = value
+    return payload
+
+
+def _replay_record_semantics(
+    record: ReplayCorpusRecord,
+) -> tuple[str, str, str | None, str | None, str | None, str | None, str]:
+    return (
+        record.platform.value,
+        record.external_event_key,
+        record.external_event_id,
+        record.external_comment_id,
+        record.external_post_id,
+        record.author_id,
+        record.text,
+    )
+
+
+def write_replay_jsonl(
+    path: str | Path,
+    comments: tuple[AcquiredComment, ...],
+) -> dict[str, object]:
+    """Write private replay JSONL, then re-parse it with Phase 20's strict loader."""
+
+    payloads = tuple(comment.replay_object() for comment in comments)
+    return _write_replay_payloads(path, payloads)
+
+
+def merge_replay_corpora(
+    inputs: Sequence[str | Path],
+    output: str | Path,
+) -> dict[str, object]:
+    """Merge Phase 20 corpora without rewriting event identity or leaking authors."""
+
+    if not inputs:
+        raise AcquisitionProtocolError("at least one replay corpus is required")
+
+    semantics: dict[
+        tuple[str, str],
+        tuple[str, str, str | None, str | None, str | None, str | None, str],
+    ] = {}
+    payloads: dict[tuple[str, str], dict[str, str]] = {}
+
+    for path in inputs:
+        corpus = load_replay_corpus(path)
+        for record in corpus.records:
+            key = (record.platform.value, record.external_event_key)
+            candidate_semantics = _replay_record_semantics(record)
+            existing_semantics = semantics.get(key)
+            if existing_semantics is not None and existing_semantics != candidate_semantics:
+                raise AcquisitionProtocolError(
+                    "same platform/event key is bound to different replay semantics"
+                )
+            if existing_semantics is None:
+                if len(payloads) >= _MAX_RECORDS:
+                    raise AcquisitionLimitExceeded(
+                        "merged acquisition exceeds maximum record count"
+                    )
+                semantics[key] = candidate_semantics
+                payloads[key] = _replay_record_payload(record)
+
+    return _write_replay_payloads(output, tuple(payloads.values()))
