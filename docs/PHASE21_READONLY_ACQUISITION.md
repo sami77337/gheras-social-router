@@ -15,7 +15,10 @@ Phase 21 prepares private historical acquisition so HG-09 can continue as soon a
 - API keys and access tokens are accepted at runtime only and are never written to replay files, manifests, exceptions, or Git.
 - Generated replay JSONL and private evidence paths remain excluded by `.gitignore`.
 - Author identities are intentionally omitted from generated replay records.
-- Pagination is bounded and fails closed instead of silently truncating evidence.
+- Pagination and accumulated record counts are bounded and fail closed instead of silently truncating evidence.
+- Telegram ZIP imports bound both archive size and total uncompressed messages-HTML size before parsing, and conflicting duplicate message IDs fail closed.
+- Replay JSONL output is validated through the Phase 20 strict loader before atomically replacing the requested target path.
+- Merging preserves the original Phase 20 platform/event identity exactly, rejects semantic conflicts, and intentionally removes author identity from the emitted merged corpus.
 - Meta pagination uses cursors on the fixed allowlisted Graph host; raw `paging.next` URLs are not followed.
 
 ## Telegram
@@ -56,21 +59,35 @@ After platform corpora exist:
 
     python scripts/ops_merge_replay_corpora.py private-replay/telegram.replay.jsonl private-replay/youtube.replay.jsonl private-replay/facebook.replay.jsonl private-replay/instagram.replay.jsonl --output private-replay/gheras-representative.replay.jsonl
 
-The merge re-parses every input through the Phase 20 strict loader and rejects semantic conflicts for the same platform/event identity.
+The merge re-parses every input through the Phase 20 strict loader, preserves the original event identity instead of reconstructing it, omits author identity from the emitted corpus, and rejects semantic conflicts for the same platform/event identity.
 
 ## What remains
 
 Phase 21 can be reviewed as engineering preparation without credentials. HG-09 remains HOLD until real representative data is collected, corpus identity is recorded, Shadow replay is executed with publication disabled, anomalies are reviewed, and a final PASS/HOLD/REJECT decision is recorded.
 
+## Continuation hardening
+
+A continuation review found two pre-lock weaknesses that were corrected before the engineering lock was renewed:
+
+- the Telegram ZIP importer bounded each member but did not bound the aggregate uncompressed HTML size;
+- the corpus merge helper reconstructed Phase 20 identities through `AcquiredComment`, which could rewrite an otherwise valid opaque `external_event_key`.
+
+The hardening also moves record-count checks into provider collection loops and adds regression coverage for the corrected fail-closed behavior.
+
 ## Engineering lock evidence
 
 - PR: #49 (stacked on Phase 20; open/unmerged)
-- Head SHA before this documentation lock: `e68f00980815106d330676184d75d89de69eb46e`
-- Full CI run: `36131491691` — PASS
-- SCA/dependency checks: PASS
+- reviewed code head before this documentation lock: `e9851a6e798af99f5ee2e4f30c0beaff60481a19`
+- full CI run: `36136526141` — PASS
+- production lock metadata: PASS
+- dependency consistency: PASS
+- production dependency audit: PASS
+- build-tool audit: PASS
+- CI/development audit: PASS
 - production-environment reproduction: PASS
 - Ruff: PASS
 - Mypy: PASS
 - Pytest: PASS
+- superseded CI run `36136385611` failed only because the newly added ZIP-bound regression fixture set the test byte limit below the ZIP container size; the fixture was corrected and the final run above passed
 - submitted independent review: none at lock time
 - real provider execution: not performed

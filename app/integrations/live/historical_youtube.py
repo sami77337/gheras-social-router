@@ -186,6 +186,10 @@ class YouTubeHistoricalCommentClient:
             thread_id=thread_id,
             text=top_text,
         )
+        if len(comments) > _MAX_COMMENTS:
+            raise AcquisitionLimitExceeded(
+                "YouTube acquisition exceeds maximum comment count"
+            )
 
         replies_obj = thread.get("replies")
         inline_replies: list[object] = []
@@ -236,6 +240,10 @@ class YouTubeHistoricalCommentClient:
             thread_id=thread_id,
             text=text,
         )
+        if len(comments) > _MAX_COMMENTS:
+            raise AcquisitionLimitExceeded(
+                "YouTube acquisition exceeds maximum comment count"
+            )
 
     async def _collect_all_replies(
         self,

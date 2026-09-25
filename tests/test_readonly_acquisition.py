@@ -8,7 +8,12 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.acquisition.common import write_replay_jsonl
+from app.acquisition.common import (
+    AcquisitionLimitExceeded,
+    AcquisitionProtocolError,
+    merge_replay_corpora,
+    write_replay_jsonl,
+)
 from app.acquisition.telegram_export import load_telegram_desktop_export
 from app.domain.events import Platform
 from app.integrations.live.activation import (
@@ -217,3 +222,93 @@ def test_written_replay_does_not_include_author_identity(tmp_path: Path) -> None
     payload = json.loads(output.read_text(encoding="utf-8").strip())
     assert "author_id" not in payload
     assert "Sensitive Name" not in output.read_text(encoding="utf-8")
+
+
+
+def test_telegram_zip_caps_total_uncompressed_html_before_parsing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app.acquisition.telegram_export as telegram_export
+
+    monkeypatch.setattr(telegram_export, "_MAX_EXPORT_BYTES", 1_000)
+    export = tmp_path / "oversized.zip"
+    with zipfile.ZipFile(export, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("messages.html", "a" * 600)
+        archive.writestr("messages2.html", "b" * 600)
+
+    with pytest.raises(AcquisitionLimitExceeded, match="uncompressed HTML"):
+        load_telegram_desktop_export(export)
+
+
+def test_telegram_duplicate_message_id_conflict_fails_closed(tmp_path: Path) -> None:
+    export = tmp_path / "duplicate-id.zip"
+    first = (
+        '<div class="message default clearfix" id="message7">'
+        '<div class="text">first</div></div>'
+    )
+    second = (
+        '<div class="message default clearfix" id="message7">'
+        '<div class="text">different</div></div>'
+    )
+    with zipfile.ZipFile(export, "w") as archive:
+        archive.writestr("messages.html", first)
+        archive.writestr("messages2.html", second)
+
+    with pytest.raises(AcquisitionProtocolError, match="conflicting text"):
+        load_telegram_desktop_export(export)
+
+
+def test_merge_preserves_phase20_event_identity_and_scrubs_author(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "phase20.replay.jsonl"
+    source.write_text(
+        json.dumps(
+            {
+                "platform": "telegram",
+                "external_event_key": "opaque-phase20-event-key",
+                "external_event_id": "thread-77",
+                "author_id": "sensitive-author",
+                "text": "Representative text",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "merged.replay.jsonl"
+
+    manifest = merge_replay_corpora([source], output)
+    corpus = load_replay_corpus(output)
+
+    assert manifest["record_count"] == 1
+    assert corpus.records[0].external_event_key == "opaque-phase20-event-key"
+    assert corpus.records[0].external_event_id == "thread-77"
+    assert corpus.records[0].external_comment_id is None
+    assert corpus.records[0].external_post_id is None
+    assert corpus.records[0].author_id is None
+    assert "sensitive-author" not in output.read_text(encoding="utf-8")
+
+
+def test_merge_rejects_semantic_conflict_before_author_scrubbing(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "first.replay.jsonl"
+    second = tmp_path / "second.replay.jsonl"
+    common = {
+        "platform": "telegram",
+        "external_event_key": "same-event",
+        "text": "same text",
+    }
+    first.write_text(
+        json.dumps({**common, "author_id": "author-a"}) + "\n",
+        encoding="utf-8",
+    )
+    second.write_text(
+        json.dumps({**common, "author_id": "author-b"}) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AcquisitionProtocolError, match="different replay semantics"):
+        merge_replay_corpora([first, second], tmp_path / "merged.replay.jsonl")
