@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 
 from app.acquisition.common import write_replay_jsonl
-from app.acquisition.meta import MetaHistoricalCommentClient
+from app.integrations.live.historical_meta import MetaHistoricalCommentClient
 from app.integrations.live.activation import issue_sandbox_execution_permit
 
 
