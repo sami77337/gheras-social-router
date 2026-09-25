@@ -9,8 +9,8 @@ from pathlib import Path
 import httpx
 
 from app.acquisition.common import write_replay_jsonl
-from app.integrations.live.historical_youtube import YouTubeHistoricalCommentClient
 from app.integrations.live.activation import issue_sandbox_execution_permit
+from app.integrations.live.historical_youtube import YouTubeHistoricalCommentClient
 
 
 async def _run(channel_id: str, output: Path, api_key: str) -> None:
