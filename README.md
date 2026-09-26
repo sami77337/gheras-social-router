@@ -58,9 +58,15 @@ YouTube   ─┘        │
 
 ## حالة البناء
 
-**V1 engineering through Phase 19 موجود الآن على `main`.**
+**V1 engineering through Phase 22 موجود الآن على `main`.**
 
-تم دمج الـintegrated stack عبر PR #44 في 2026-09-14، ثم اجتاز `main` post-merge CI run `34836900921` كامل البوابات التالية:
+تمت ترقية Phase 20–22 إلى `main` في 2026-09-26 بالترتيب التالي:
+
+- PR #47 — Phase 20: Private Representative Shadow Replay Runner;
+- PR #49 — Phase 21: Read-Only Historical Comment Acquisition;
+- PR #51 — Phase 22: Representative Shadow Execution Orchestration.
+
+آخر رأس مدمج هو `8dc51ad35a96cda40a3374010bbf2953d16389ba`، وقد اجتاز post-merge CI run `36228719988` كامل البوابات التالية:
 
 - production lock verification;
 - dependency consistency;
@@ -69,6 +75,10 @@ YouTube   ─┘        │
 - Ruff;
 - Mypy;
 - Pytest.
+
+ترقية Phase 20–22 تمت تحت owner-authorized review waiver موثق في Issue #52؛ مراجعة ChatGPT العدائية كانت PASS لكنها ليست مراجعة مستقلة ولا يجوز وصفها كذلك.
+
+Phase 20–22 تضيف مسار replay خاصًا ومقيدًا، acquisition تاريخي read-only لـFacebook/Instagram/Telegram/YouTube، وتجهيز orchestration لتنفيذ Representative Shadow محليًا مع evidence خالٍ من المحتوى. هذه الهندسة لا تعني أن HG-09 قد اجتاز: لم يتم تشغيل representative private corpus عبر provider حقيقي ولم يصدر قرار acceptance مبني على نتائج حقيقية.
 
 الدمج إلى `main` **ليس تفعيلًا Production**. ما تزال بوابات التشغيل الخارجي موثقة في `docs/HUMAN_GATES.md`، ومنها credentials/scopes الحقيقية، provider sandbox validation، supervised FATWA integration، representative Shadow evaluation، production-equivalent restore rehearsal، قرارات TLS/ingress/monitoring، والتفعيل الصريح للنشر الحي.
 

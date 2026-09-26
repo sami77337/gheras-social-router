@@ -1,6 +1,6 @@
 # Gheras Social Router — Human Gates Before Live Activation
 
-This is the current authoritative gate summary after the V1 engineering stack through Phase 19 was promoted to `main` on 2026-09-14. Historical phase lock/readiness documents remain point-in-time evidence and are not rewritten to look current.
+This is the current authoritative gate summary after V1 engineering through Phase 22 was promoted to `main` on 2026-09-26. Historical phase lock/readiness documents remain point-in-time evidence and are not rewritten to look current.
 
 ## HG-01 — Legacy Facebook bot cutover
 
@@ -58,17 +58,24 @@ The default remains `telegram_only`, so an approved FATWA result is not automati
 
 Phase 17 established exact direct pins, production/build lock files, `pip check`, `pip-audit` gates for runtime/build/dev, clean production-environment reproduction, full-SHA GitHub Action pinning, and `persist-credentials: false`.
 
-The recorded pytest advisory was remediated by upgrading to `pytest==9.1.1`, after which audits passed. Post-merge `main` CI run `34836900921` again passed the supply-chain gates.
+The recorded pytest advisory was remediated by upgrading to `pytest==9.1.1`, after which audits passed. Phase 20–22 promotion retained the same blocking supply-chain gates. Final post-merge `main` CI run `36228719988` again passed the production lock, dependency consistency, production/build/development audits, production-environment reproduction, Ruff, Mypy, and Pytest gates.
 
 This is not a permanent vulnerability-free guarantee. SCA must be rerun when dependencies change and before production release. Wheel/hash locking remains dependent on the selected production OS/architecture.
 
 ## HG-09 — Representative Shadow evaluation
 
-**Status: HARNESS PASS / REPRESENTATIVE EVALUATION HOLD**
+**Status: ENGINEERING STACK PASS THROUGH PHASE 22 / REPRESENTATIVE ACCEPTANCE HOLD**
 
-Phase 19 provides an evaluator-version-scoped, content-free evidence harness with aggregate reconciliation and deterministic SHA-256 evidence. Missing evidence fails closed.
+The engineering path is now present on `main`:
 
-HG-09 itself remains HOLD until a representative sandbox/staging or safely replayed dataset is identified, executed with publication disabled, reviewed for anomalies, and given an explicit `PASS`, `HOLD`, or `REJECT` acceptance decision.
+- Phase 19: evaluator-version-scoped, content-free Shadow evidence harness with aggregate reconciliation and deterministic SHA-256 evidence;
+- Phase 20: strict private representative replay loader/runner with exact corpus digest, bounded input, evaluator isolation, idempotent ingestion, and zero-publication checks;
+- Phase 21: read-only historical acquisition for Facebook, Instagram, Telegram, and YouTube, including offline Telegram export import, bounded provider reads, normalized replay output, author-identity omission, and fail-closed semantic-conflict handling;
+- Phase 22: representative Shadow execution orchestration with validated private FAQ snapshot support, environment-only model credential handling, explicit private-content processing acknowledgement, decision ceilings, release/model/evaluator/corpus evidence binding, and content-free atomic evidence output.
+
+CI and engineering readiness do not constitute representative acceptance. No real external-model representative run was executed as part of the Phase 20–22 promotion.
+
+HG-09 remains HOLD until an approved representative sandbox/staging or safely replayed private corpus is executed under the applicable private-content/provider Human Gate, publication remains disabled, anomaly cases are reviewed through an authorized secure path, and an explicit `PASS`, `HOLD`, or `REJECT` acceptance decision is recorded.
 
 ## HG-10 — Production environment and operations
 
@@ -90,23 +97,21 @@ The following still require the actual deployment environment and owner/operator
 
 ## HG-11 — Promotion to `main`
 
-**Status: PASS — OWNER-AUTHORIZED REVIEW WAIVER RECORDED**
+**Status: PASS THROUGH PHASE 22 — OWNER-AUTHORIZED REVIEW WAIVERS RECORDED**
 
-PR #44 (`phase/19-shadow-evidence-harness` → `main`) was merged on 2026-09-14 as merge commit:
+The Phase 19 integrated promotion remains recorded under PR #44 and its owner-authorized waiver.
 
-`83a4d64ba5208ea2389aa33f029763676712c5fd`
+The later Phase 20–22 stacked continuation was promoted on 2026-09-26 under a separate owner-authorized waiver recorded in Issue #52. The assistant adversarial review was PASS but was **not independent** and must not be represented as independent acceptance.
 
-Evidence:
+Promotion order and post-merge evidence:
 
-- locked Phase 19 head `e97537a7e6cafbe47cf0c817de41020c0e79e8e8`;
-- Phase 19 branch CI `34608463775` — PASS;
-- integrated PR-to-main CI `34610230607` — PASS;
-- assistant adversarial review found no merge-blocking defect;
-- repository owner explicitly authorized treating that assistant review as sufficient and merging.
+- PR #47 / Phase 20 → merge commit `9eb4a26b927ea4a66dbb5007612f92bc662dc6f8`; post-merge CI `36228501965` — PASS;
+- PR #49 / Phase 21 → merge commit `2f0a94ae54dbcdc5c61481534c22f345da0e476f`; post-merge CI `36228622887` — PASS;
+- PR #51 / Phase 22 → merge commit `8dc51ad35a96cda40a3374010bbf2953d16389ba`; post-merge CI `36228719988` — PASS.
 
-The previous requirement for a genuinely independent submitted review was **explicitly waived by the owner for this promotion only**. The assistant review must not be represented as an independent review.
+All three post-merge runs passed production lock verification, dependency consistency, production/build/development audits, production-environment reproduction, Ruff, Mypy, and Pytest.
 
-Post-merge `main` CI run `34836900921` completed successfully across production lock verification, dependency consistency, production/build/development SCA, production-environment reproduction, Ruff, Mypy, and Pytest.
+These promotion waivers apply only to the recorded code promotions. They do not waive any external/private-content, credential, provider, deployment, publication, or production-live Human Gate.
 
 ## HG-12 — Production publication activation
 
